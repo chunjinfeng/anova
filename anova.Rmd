@@ -1,0 +1,228 @@
+---
+title: "Anova Analysis"
+author: "xxx"
+date: "Tuesday, January 06, 2015"
+output: pdf_document
+---
+
+```{r,echo=FALSE}
+## 读取文件
+sample<-read.csv("sampledata.csv")
+```
+## 方差分析(ANOVA)
+
+```{r,echo=FALSE}
+#查看有哪些变量
+# names(sample)
+#把需要进行t检验的变量放到tname这个变量里
+tname<-c("b4_1","b4_2","b4_3","b5_1","b5_2","b5_3")
+##判断是否具在统计意义
+
+ind<-function(x){
+if(x<0.05) {return("具有")
+} else {return("不具有")}
+}
+crosscp2<-function(x){
+    if(x<0.01) c("1%","p<0.01")
+    else if (x<0.05&x>=0.01) 
+        c("5%","p<0.05")
+    else c("5%",paste("p","=",x,sep=""))
+}
+```
+
+```{r,echo=FALSE}
+af<-function(cpgroup,group="a4",data=sample){
+  cpgroup=tname[1]
+  group="a4"
+  data=sample
+#cpgroup:需要进行检验的变量名
+#group:是这里的a3,就是你需要分组的那个变量
+    sample$a4<-factor(sample$a4)
+xx<-split(sample[cpgroup],sample[group])
+n<-sapply(xx,function(x) nrow(na.omit(x)))
+summary(n)
+n
+#去除缺省值后的样本总量
+N<-sum(n)
+## 提取出分别的样本量
+ng<-0
+nl<-length(xx)
+nl=3
+for(i in 1:nl)
+    {ng[i]<-n[i]}
+#names(n)<-groupname
+#c("男性","女性")
+Mvalue<-0
+sdvalue<-0
+for(i in 1:nl){
+    #the mean
+Mvalue[i]<-round(mean(as.vector(xx[[i]][,1]),na.rm=T),3)
+#计算标准差，并保留3位小数
+sdvalue[i]<-round(sd(as.vector(xx[[i]][,1]),na.rm=T),3)
+}
+formula<-paste(cpgroup,"~",group,sep="")
+## 这里的sample是需要到时候更改的
+fit<-lm(formula,data=sample)
+fresult<-summary(aov(fit))
+fvalue<-round(fresult[[1]][1,4],3)
+pvalue<-round(fresult[[1]][1,5],3)
+## 添加*号
+fstar<-function(x,y) {
+#x indicate pvalue
+#y indicate F value or tValue
+    if(x<0.01)
+        paste(y,"**",sep="")
+    else if (0.01<x&x<0.05) 
+        paste(y,"*",sep="")
+    else paste(y,'(',paste(letters[1:nl],sep="",collapse="="),')',sep="")
+}
+fvalue2<-fstar(pvalue,fvalue)
+#返回是否“具有”统计学意义上显著性
+ifsign<-ind(pvalue)
+# 加星号
+namezu<-paste(names(n),paste('(',letters[1:nl],')',sep=""),sep="")
+res<-data.frame(N=N,cpgroup=cpgroup,
+                name01=names(n)[1],name02=names(n)[2],name03=names(n)[3],name04=names(n)[4],name05=names(n)[5],
+                name1=namezu[1],name2=namezu[2],name3=namezu[3],name4=namezu[4],name5=namezu[5],
+            N1=ng[1],N2=ng[2],N3=ng[3],N4=ng[4],N5=ng[5],
+            M1=Mvalue[1],M2=Mvalue[2],M3=Mvalue[3],M4=Mvalue[4],M5=Mvalue[5],
+            sd1=sdvalue[1],sd2=sdvalue[2],sd3=sdvalue[3],sd4=sdvalue[4],sd5=sdvalue[5],
+fvalue=fvalue,fvalue2=fvalue2,pvalue=pvalue,ifsign=ifsign)
+return(res)
+}
+res<-
+  c(N,cpgroup,ifsign,fvalue2,namezu,names(n),ng,Mvalue,sdvalue,fvalue,pvalue)
+c("N","cpgroup",)
+#da<-duncan.test(aov(fit),"a3",console=F)
+```
+
+-------------------
+
+```{r,echo=FALSE}
+rp3<-af(tname[1])
+```
+
+### sample 情况比较
+
+$<表3>$为sample情况比较的分析结果。调查的$`r rp3$N`$个样本中,`r rp3$cpgroup`的结果显示，`r rp3$name01`的`r rp3$cpgroup`为`r rp3$M1`(SD=`r rp3$sd1`)，`r rp3$name02`的`r rp3$cpgroup`为`r rp3$M2`(SD=`r rp3$sd2`),`r rp3$name03`的`r rp3$cpgroup`为`r rp3$M3`(SD=`r rp3$sd3`),`r rp3$name04`的`r rp3$cpgroup`为`r rp3$M4`(SD=`r rp3$sd4`),`r rp3$name05`的`r rp3$cpgroup`为`r rp3$M5`(SD=`r rp3$sd5`),在`r crosscp2(rp3$pvalue)[1]`的显著性水平下，`r rp3$cpgroup`之间的差别`r rp3$ifsign`统计学意义上的显著性（F=`r rp3$fvalue`,`r crosscp2(rp3$pvalue)[2]`）。
+
+表3：sample 情况比较
+
+类别|分组|N|Mean|SD|F|p
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:
+|`r rp3$cpgroup`|`r rp3$name1`|`r rp3$N1`|`r rp3$M1`|`r rp3$sd1`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name2`|`r rp3$N2`|`r rp3$M2`|`r rp3$sd2`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name3`|`r rp3$N3`|`r rp3$M3`|`r rp3$sd3`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name4`|`r rp3$N4`|`r rp3$M4`|`r rp3$sd4`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name5`|`r rp3$N5`|`r rp3$M5`|`r rp3$sd5`|`r rp3$fvalue2`|`r rp3$pvalue`
+
+$*<0.05 , **<0.01$
+
+
+-------------------
+
+```{r,echo=FALSE}
+rp3<-af(tname[2])
+```
+
+### sample 情况比较
+$<表3>$为sample情况比较的分析结果。调查的$`r rp3$N`$个样本中,`r rp3$cpgroup`的结果显示，`r rp3$name01`的`r rp3$cpgroup`为`r rp3$M1`(SD=`r rp3$sd1`)，`r rp3$name02`的`r rp3$cpgroup`为`r rp3$M2`(SD=`r rp3$sd2`),`r rp3$name03`的`r rp3$cpgroup`为`r rp3$M3`(SD=`r rp3$sd3`),`r rp3$name04`的`r rp3$cpgroup`为`r rp3$M4`(SD=`r rp3$sd4`),`r rp3$name05`的`r rp3$cpgroup`为`r rp3$M5`(SD=`r rp3$sd5`),在`r crosscp2(rp3$pvalue)[1]`的显著性水平下，`r rp3$cpgroup`之间的差别`r rp3$ifsign`统计学意义上的显著性（F=`r rp3$fvalue`,`r crosscp2(rp3$pvalue)[2]`）。
+
+表3：sample 情况比较
+
+类别|分组|N|Mean|SD|F|p
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:
+|`r rp3$cpgroup`|`r rp3$name1`|`r rp3$N1`|`r rp3$M1`|`r rp3$sd1`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name2`|`r rp3$N2`|`r rp3$M2`|`r rp3$sd2`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name3`|`r rp3$N3`|`r rp3$M3`|`r rp3$sd3`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name4`|`r rp3$N4`|`r rp3$M4`|`r rp3$sd4`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name5`|`r rp3$N5`|`r rp3$M5`|`r rp3$sd5`|`r rp3$fvalue2`|`r rp3$pvalue`
+
+$*<0.05 , **<0.01$
+
+
+
+-------------------
+
+```{r,echo=FALSE}
+rp3<-af(tname[3])
+```
+
+### sample 情况比较
+$<表3>$为sample情况比较的分析结果。调查的$`r rp3$N`$个样本中,`r rp3$cpgroup`的结果显示，`r rp3$name01`的`r rp3$cpgroup`为`r rp3$M1`(SD=`r rp3$sd1`)，`r rp3$name02`的`r rp3$cpgroup`为`r rp3$M2`(SD=`r rp3$sd2`),`r rp3$name03`的`r rp3$cpgroup`为`r rp3$M3`(SD=`r rp3$sd3`),`r rp3$name04`的`r rp3$cpgroup`为`r rp3$M4`(SD=`r rp3$sd4`),`r rp3$name05`的`r rp3$cpgroup`为`r rp3$M5`(SD=`r rp3$sd5`),在`r crosscp2(rp3$pvalue)[1]`的显著性水平下，`r rp3$cpgroup`之间的差别`r rp3$ifsign`统计学意义上的显著性（F=`r rp3$fvalue`,`r crosscp2(rp3$pvalue)[2]`）。
+
+表3：sample 情况比较
+
+类别|分组|N|Mean|SD|F|p
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:
+|`r rp3$cpgroup`|`r rp3$name1`|`r rp3$N1`|`r rp3$M1`|`r rp3$sd1`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name2`|`r rp3$N2`|`r rp3$M2`|`r rp3$sd2`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name3`|`r rp3$N3`|`r rp3$M3`|`r rp3$sd3`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name4`|`r rp3$N4`|`r rp3$M4`|`r rp3$sd4`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name5`|`r rp3$N5`|`r rp3$M5`|`r rp3$sd5`|`r rp3$fvalue2`|`r rp3$pvalue`
+
+$*<0.05 , **<0.01$
+
+
+-------------------
+
+```{r,echo=FALSE}
+rp3<-af(tname[4])
+```
+
+### sample 情况比较
+$<表3>$为sample情况比较的分析结果。调查的$`r rp3$N`$个样本中,`r rp3$cpgroup`的结果显示，`r rp3$name01`的`r rp3$cpgroup`为`r rp3$M1`(SD=`r rp3$sd1`)，`r rp3$name02`的`r rp3$cpgroup`为`r rp3$M2`(SD=`r rp3$sd2`),`r rp3$name03`的`r rp3$cpgroup`为`r rp3$M3`(SD=`r rp3$sd3`),`r rp3$name04`的`r rp3$cpgroup`为`r rp3$M4`(SD=`r rp3$sd4`),`r rp3$name05`的`r rp3$cpgroup`为`r rp3$M5`(SD=`r rp3$sd5`),在`r crosscp2(rp3$pvalue)[1]`的显著性水平下，`r rp3$cpgroup`之间的差别`r rp3$ifsign`统计学意义上的显著性（F=`r rp3$fvalue`,`r crosscp2(rp3$pvalue)[2]`）。
+
+表3：sample 情况比较
+
+类别|分组|N|Mean|SD|F|p
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:
+|`r rp3$cpgroup`|`r rp3$name1`|`r rp3$N1`|`r rp3$M1`|`r rp3$sd1`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name2`|`r rp3$N2`|`r rp3$M2`|`r rp3$sd2`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name3`|`r rp3$N3`|`r rp3$M3`|`r rp3$sd3`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name4`|`r rp3$N4`|`r rp3$M4`|`r rp3$sd4`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name5`|`r rp3$N5`|`r rp3$M5`|`r rp3$sd5`|`r rp3$fvalue2`|`r rp3$pvalue`
+
+$*<0.05 , **<0.01$
+
+-------------------
+
+```{r,echo=FALSE}
+rp3<-af(tname[5])
+```
+
+### sample 情况比较
+$<表3>$为sample情况比较的分析结果。调查的$`r rp3$N`$个样本中,`r rp3$cpgroup`的结果显示，`r rp3$name01`的`r rp3$cpgroup`为`r rp3$M1`(SD=`r rp3$sd1`)，`r rp3$name02`的`r rp3$cpgroup`为`r rp3$M2`(SD=`r rp3$sd2`),`r rp3$name03`的`r rp3$cpgroup`为`r rp3$M3`(SD=`r rp3$sd3`),`r rp3$name04`的`r rp3$cpgroup`为`r rp3$M4`(SD=`r rp3$sd4`),`r rp3$name05`的`r rp3$cpgroup`为`r rp3$M5`(SD=`r rp3$sd5`),在`r crosscp2(rp3$pvalue)[1]`的显著性水平下，`r rp3$cpgroup`之间的差别`r rp3$ifsign`统计学意义上的显著性（F=`r rp3$fvalue`,`r crosscp2(rp3$pvalue)[2]`）。
+
+表3：sample 情况比较
+
+类别|分组|N|Mean|SD|F|p
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:
+|`r rp3$cpgroup`|`r rp3$name1`|`r rp3$N1`|`r rp3$M1`|`r rp3$sd1`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name2`|`r rp3$N2`|`r rp3$M2`|`r rp3$sd2`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name3`|`r rp3$N3`|`r rp3$M3`|`r rp3$sd3`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name4`|`r rp3$N4`|`r rp3$M4`|`r rp3$sd4`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name5`|`r rp3$N5`|`r rp3$M5`|`r rp3$sd5`|`r rp3$fvalue2`|`r rp3$pvalue`
+
+$*<0.05 , **<0.01$
+
+-------------------
+
+```{r,echo=FALSE}
+rp3<-af(tname[6])
+```
+
+### sample 情况比较
+$<表3>$为sample情况比较的分析结果。调查的$`r rp3$N`$个样本中,`r rp3$cpgroup`的结果显示，`r rp3$name01`的`r rp3$cpgroup`为`r rp3$M1`(SD=`r rp3$sd1`)，`r rp3$name02`的`r rp3$cpgroup`为`r rp3$M2`(SD=`r rp3$sd2`),`r rp3$name03`的`r rp3$cpgroup`为`r rp3$M3`(SD=`r rp3$sd3`),`r rp3$name04`的`r rp3$cpgroup`为`r rp3$M4`(SD=`r rp3$sd4`),`r rp3$name05`的`r rp3$cpgroup`为`r rp3$M5`(SD=`r rp3$sd5`),在`r crosscp2(rp3$pvalue)[1]`的显著性水平下，`r rp3$cpgroup`之间的差别`r rp3$ifsign`统计学意义上的显著性（F=`r rp3$fvalue`,`r crosscp2(rp3$pvalue)[2]`）。
+
+表3：sample 情况比较
+
+类别|分组|N|Mean|SD|F|p
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:
+|`r rp3$cpgroup`|`r rp3$name1`|`r rp3$N1`|`r rp3$M1`|`r rp3$sd1`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name2`|`r rp3$N2`|`r rp3$M2`|`r rp3$sd2`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name3`|`r rp3$N3`|`r rp3$M3`|`r rp3$sd3`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name4`|`r rp3$N4`|`r rp3$M4`|`r rp3$sd4`|`r rp3$fvalue2`|`r rp3$pvalue`
+||`r rp3$name5`|`r rp3$N5`|`r rp3$M5`|`r rp3$sd5`|`r rp3$fvalue2`|`r rp3$pvalue`
+
+$*<0.05 , **<0.01$
